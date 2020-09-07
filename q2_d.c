@@ -47,13 +47,13 @@ int main()
 
     // Get current clock time.
 	 // You can also MPI_Wtime()    
-    
+    	clock_gettime(CLOCK_MONOTONIC, &start);
 	// STEP 2: Broadcast the arrays to all other MPI processess in the group	
 	clock_gettime(CLOCK_MONOTONIC, &startComm);
 	MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	clock_gettime(CLOCK_MONOTONIC, &endComm);
 	
-	clock_gettime(CLOCK_MONOTONIC, &start);
+	
 	int i, j,sqrt_i;
 	bool prime;
 	
@@ -64,7 +64,7 @@ int main()
 	int ep = sp + rpt; 
 	if(my_rank == p-1)
 		{ep += rptr;}
-	int arraySize = ep-sp+1;
+	int arraySize = ep-sp;
 	primeArray = (int*)malloc( arraySize* sizeof(int));
 	for (int z = 0; z< (ep-sp); z++){
 	    primeArray[z] = 0;
@@ -98,9 +98,6 @@ int main()
     time_taken = (time_taken + (end.tv_nsec - start.tv_nsec)) * 1e-9; 
 	printf("Rank: %d. Overall time (s): %lf\n\n", my_rank, time_taken); // tp
 	
-	time_taken = (endComm.tv_sec - startComm.tv_sec) * 1e9; 
-    time_taken = (time_taken + (endComm.tv_nsec - startComm.tv_nsec)) * 1e-9; 
-	printf("Rank: %d. Broadcast time (s): %lf\n\n", my_rank, time_taken);
 	MPI_Finalize();
 	return 0;
 }
