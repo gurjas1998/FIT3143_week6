@@ -1,11 +1,3 @@
-////////////////////////////////////////////////////////////////////////////
-// Vector_Cell_Product_MPI_v1.c
-// -------------------------------------------------------------------------
-//
-// Performs a cell by cell product between two vectors using MPI
-// Not optimized: Entire data being sent to all processes
-//
-//////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -47,12 +39,18 @@ int main()
 
     // Get current clock time.
 	 // You can also MPI_Wtime()    
-    	clock_gettime(CLOCK_MONOTONIC, &start);
-	// STEP 2: Broadcast the arrays to all other MPI processess in the group	
+    
+	// STEP 2: Broadcast the arrays to all other MPI processess in the group
 	clock_gettime(CLOCK_MONOTONIC, &startComm);
+	if(my_rank == 0){	
+	    clock_gettime(CLOCK_MONOTONIC, &start);
+	}
 	MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	if(my_rank!=0){
+	    
+	    clock_gettime(CLOCK_MONOTONIC, &start);
+	}
 	clock_gettime(CLOCK_MONOTONIC, &endComm);
-	
 	
 	int i, j,sqrt_i;
 	bool prime;
@@ -97,6 +95,12 @@ int main()
 	time_taken = (end.tv_sec - start.tv_sec) * 1e9; 
     time_taken = (time_taken + (end.tv_nsec - start.tv_nsec)) * 1e-9; 
 	printf("Rank: %d. Overall time (s): %lf\n\n", my_rank, time_taken); // tp
+	
+	if(my_rank == 0){
+	time_taken = (endComm.tv_sec - startComm.tv_sec) * 1e9; 
+    time_taken = (time_taken + (endComm.tv_nsec - startComm.tv_nsec)) * 1e-9; 
+	printf("Rank: %d. Broadcast time: %lf\n\n", my_rank, time_taken); 
+	}
 	
 	MPI_Finalize();
 	return 0;
