@@ -1,11 +1,3 @@
-////////////////////////////////////////////////////////////////////////////
-// Vector_Cell_Product_MPI_v1.c
-// -------------------------------------------------------------------------
-//
-// Performs a cell by cell product between two vectors using MPI
-// Not optimized: Entire data being sent to all processes
-//
-//////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -23,7 +15,6 @@ int main()
 	int my_rank;
 	int p;
 	int *primeArray = NULL;
-	int offset;
 	struct timespec start, end, startComm, endComm; 
 	double time_taken; 
 
@@ -45,15 +36,21 @@ int main()
         scanf("%d",&n); 
 		
 	}
-    
+
     // Get current clock time.
 	 // You can also MPI_Wtime()    
-    clock_gettime(CLOCK_MONOTONIC, &start);
-	// STEP 2: Broadcast the arrays to all other MPI processess in the group	
+    
+	// STEP 2: Broadcast the arrays to all other MPI processess in the group
 	clock_gettime(CLOCK_MONOTONIC, &startComm);
+	if(my_rank == 0){	
+	    clock_gettime(CLOCK_MONOTONIC, &start);
+	}
 	MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	if(my_rank!=0){
+	    
+	    clock_gettime(CLOCK_MONOTONIC, &start);
+	}
 	clock_gettime(CLOCK_MONOTONIC, &endComm);
-	
 	
 	int i, j,sqrt_i;
 	bool prime;
@@ -65,7 +62,7 @@ int main()
 	int ep = sp + rpt; 
 	if(my_rank == p-1)
 		{ep += rptr;}
-	int arraySize = (my_rank ==0)? n : ep-sp;
+	int arraySize = ep-sp;
 	primeArray = (int*)malloc( arraySize* sizeof(int));
 	for (int z = 0; z< (ep-sp); z++){
 	    primeArray[z] = 0;
@@ -88,33 +85,22 @@ int main()
     }
 	
 	
-	
-	if(my_rank == 0)
-	{
-		// Initialize the offset based on Rank 0's workload
-		offset = rpt;
-		
-		for(i = 1; i < p; i++){
-			if(i != p-1)
-				MPI_Recv((int*)primeArray + offset, rpt, MPI_INT, i, 0, MPI_COMM_WORLD, &status);
-			else
-				MPI_Recv((int*)primeArray + offset, (rpt + rptr), MPI_INT, i, 0, MPI_COMM_WORLD, &status);
-			offset += rpt;
-		}
-		// STEP 5: Write to file
-		printf("Rank: %d. Commence Writing\n", my_rank);
-		WriteToFile("primeNumber.txt",primeArray,arraySize);
-		printf("Rank: %d. Write complete\n", my_rank);
-	}else{
-		MPI_Send((int*)primeArray, arraySize, MPI_INT, 0, 0, MPI_COMM_WORLD);
-	}
-	
+	char str[20];
+    snprintf(str, 20, "process_%d.txt", my_rank); // puts string into buffer
+    //printf("%s\n", str); // outputs so you can see it
+    WriteToFile(str,primeArray,arraySize);
 	
 	free(primeArray);
 	clock_gettime(CLOCK_MONOTONIC, &end); 
 	time_taken = (end.tv_sec - start.tv_sec) * 1e9; 
     time_taken = (time_taken + (end.tv_nsec - start.tv_nsec)) * 1e-9; 
 	printf("Rank: %d. Overall time (s): %lf\n\n", my_rank, time_taken); // tp
+	
+	if(my_rank == 0){
+	time_taken = (endComm.tv_sec - startComm.tv_sec) * 1e9; 
+    time_taken = (time_taken + (endComm.tv_nsec - startComm.tv_nsec)) * 1e-9; 
+	printf("Rank: %d. Broadcast time: %lf\n\n", my_rank, time_taken); 
+	}
 	
 	MPI_Finalize();
 	return 0;
